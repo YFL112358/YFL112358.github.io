@@ -5,7 +5,7 @@
   "version": "0.4.4",
   "main": "index.js",
   "dependencies": {
-    "bootstrap": "^3.3.7",
+    "bootstrap": "^3.4.1",
     "react-bootstrap": "~0.30.7",
     "katex": "^0.7.1",
     "markdown-it": "^8.3.1",
