@@ -1,9 +1,9 @@
 "use strict";
 
-var _ = require("./lodash"),
-    addLabel = require("./label/add-label"),
-    util = require("./util"),
-    d3 = require("./d3");
+var _ = require("./lodash");
+var addLabel = require("./label/add-label");
+var util = require("./util");
+var d3 = require("./d3");
 
 module.exports = createNodes;
 
@@ -13,25 +13,30 @@ function createNodes(selection, g, shapes) {
     .data(simpleNodes, function(v) { return v; })
     .classed("update", true);
 
-  svgNodes.selectAll("*").remove();
-  svgNodes.enter()
-    .append("g")
-      .attr("class", "node")
-      .style("opacity", 0);
+  svgNodes.exit().remove();
+
+  svgNodes.enter().append("g")
+    .attr("class", "node")
+    .style("opacity", 0);
+
+  svgNodes = selection.selectAll("g.node"); 
+
   svgNodes.each(function(v) {
-    var node = g.node(v),
-        thisGroup = d3.select(this),
-        labelGroup = thisGroup.append("g").attr("class", "label"),
-        labelDom = addLabel(labelGroup, node),
-        shape = shapes[node.shape],
-        bbox = _.pick(labelDom.node().getBBox(), "width", "height");
+    var node = g.node(v);
+    var thisGroup = d3.select(this);
+    util.applyClass(thisGroup, node["class"],
+      (thisGroup.classed("update") ? "update " : "") + "node");
+
+    thisGroup.select("g.label").remove();
+    var labelGroup = thisGroup.append("g").attr("class", "label");
+    var labelDom = addLabel(labelGroup, node);
+    var shape = shapes[node.shape];
+    var bbox = _.pick(labelDom.node().getBBox(), "width", "height");
 
     node.elem = this;
 
     if (node.id) { thisGroup.attr("id", node.id); }
     if (node.labelId) { labelGroup.attr("id", node.labelId); }
-    util.applyClass(thisGroup, node["class"],
-      (thisGroup.classed("update") ? "update " : "") + "node");
 
     if (_.has(node, "width")) { bbox.width = node.width; }
     if (_.has(node, "height")) { bbox.height = node.height; }
@@ -42,7 +47,9 @@ function createNodes(selection, g, shapes) {
       ((node.paddingLeft - node.paddingRight) / 2) + "," +
       ((node.paddingTop - node.paddingBottom) / 2) + ")");
 
-    var shapeSvg = shape(d3.select(this), bbox, node);
+    var root = d3.select(this);
+    root.select(".label-container").remove();
+    var shapeSvg = shape(root, bbox, node).classed("label-container", true);
     util.applyStyle(shapeSvg, node.style);
 
     var shapeBBox = shapeSvg.node().getBBox();
@@ -50,7 +57,15 @@ function createNodes(selection, g, shapes) {
     node.height = shapeBBox.height;
   });
 
-  util.applyTransition(svgNodes.exit(), g)
+  var exitSelection;
+
+  if (svgNodes.exit) {
+    exitSelection = svgNodes.exit();
+  } else {
+    exitSelection = svgNodes.selectAll(null); // empty selection
+  }
+
+  util.applyTransition(exitSelection, g)
     .style("opacity", 0)
     .remove();
 
